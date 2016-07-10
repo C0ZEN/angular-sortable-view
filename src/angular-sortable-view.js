@@ -375,7 +375,7 @@
 		};
 	}]);
 
-	module.directive('svElement', ['$parse', function($parse){
+	module.directive('svElement', ['$parse','svDragging', function($parse, svDragging){
 		return {
 			restrict: 'A',
 			require: ['^svPart', '^svRoot'],
@@ -450,6 +450,11 @@
 				}
 
 				function onMousedown(e){
+					console.log("on mouse down", $element, svDragging, svDragging.isDragging);
+					if (svDragging.isDragging){
+						return;
+					}
+					svDragging.isDragging = true;
 					touchFix(e);
 
 					if($controllers[1].sortingInProgress()) return;
@@ -483,7 +488,9 @@
 						target.addClass('sv-visibility-hidden');
 					}
 					else{
-						target.addClass('sv-long-pressing');
+						setTimeout(function(){
+							target.addClass('sv-long-pressing');
+						},300)
 						clone = target.clone();
 						clone.addClass('sv-helper').css({
 							'left': clientRect.left + document.body.scrollLeft + 'px',
@@ -523,6 +530,7 @@
 					html.addClass(dropzoneClass);
 
 					html.on('mousemove touchmove', onMousemove).on('mouseup touchend touchcancel', function mouseup(e){
+						svDragging.isDragging = false;
 						html.off('mousemove touchmove', onMousemove);
 						html.off('mouseup touchend', mouseup);
 
@@ -536,7 +544,9 @@
 							$controllers[0].$drop($scope.$index, opts);
 						}
 						$element.removeClass('sv-visibility-hidden');
-						target.removeClass('sv-long-pressing');
+						setTimeout(function(){
+							target.removeClass('sv-long-pressing');
+						},300)
 					});
 
 					// onMousemove(e);
@@ -546,11 +556,15 @@
 							$element.parent().prepend(clone);
 							moveExecuted = true;
 						}
+						console.log("Moving el", $element);
 						$controllers[1].$moveUpdate(opts, {
 							x: e.clientX,
 							y: e.clientY,
 							offset: pointerOffset
 						}, clone, $element, placeholder, $controllers[0].getPart(), $scope.$index);
+						e.stopPropagation();
+						e.preventDefault();
+						return false;
 					}
 				}
 			}
@@ -604,6 +618,10 @@
 					$ctrl[0].placeholder = $element;
 			}
 		};
+	});
+
+	module.service('svDragging', function(){
+		this.isDragging = false;
 	});
 
 	angular.element(document.head).append([
