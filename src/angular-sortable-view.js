@@ -400,21 +400,32 @@
 					$controllers[1].removeFromSortableElements(sortableElement);
 				});
 
+				var startTimer;
+				var clearEvent = function () {
+				  clearTimeout(startTimer);
+			 	};
+			 	var event = onMousedown;
+		 	  event = function (e) {
+		 	    html.on('mouseup touchend', clearEvent);
+		 	    startTimer = setTimeout(function () { onMousedown(e); }, 100);
+		 	  };
+
 				// assume every element is draggable unless specified
 				$scope.$watch($parse($attrs.svElementDisabled), function(newVal, oldVal) {
 					if (newVal){
-						resetOnStartEvent(false);
+						resetOnStartEvent(false, event);
 					} else {
-						resetOnStartEvent($element);
+						resetOnStartEvent($element, event);
 					}
 
  				})
 
 				var handle = $element;
-				handle.on('mousedown touchstart', onMousedown);
+
+				handle.on('mousedown touchstart', event);
 				$scope.$watch('$ctrl.handle', function(customHandle){
 					if(customHandle){
-						resetOnStartEvent(customHandle)
+						resetOnStartEvent(customHandle, event)
 					}
 				});
 
@@ -438,14 +449,14 @@
 				var moveExecuted;
 
 
-				function resetOnStartEvent(newHandle){
+				function resetOnStartEvent(newHandle, event){
 					if (newHandle){
-							handle.off('mousedown touchstart', onMousedown);
+							handle.off('mousedown touchstart', event);
 							handle = newHandle;
-							handle.on('mousedown touchstart', onMousedown);
+							handle.on('mousedown touchstart', event);
 							return;
 					} else {
-						handle.off('mousedown touchstart', onMousedown);
+						handle.off('mousedown touchstart', event);
 					}
 				}
 
