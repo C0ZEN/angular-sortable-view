@@ -419,12 +419,19 @@
 			}],
 			scope: true,
 			link: function($scope, $element, $attrs, $sortable){
+				var html = angular.element(document.documentElement);
 				if(!$attrs.svPart) throw new Error('no model provided');
 				var model = $parse($attrs.svPart);
 				if(!model.assign) throw new Error('model not assignable');
 				$sortable.keepInList = $parse($attrs.svKeepInList)($scope);
 				$scope.$ctrl.isDropzone = $parse($attrs.svIsDropzone)($scope) === false ? false : true;
 				$scope.$ctrl.multiSelect = $parse($attrs.svMultiSelect)($scope) === true ? true : false;
+
+				if($scope.$ctrl.multiSelect){
+					$element.on('mousedown',function(){
+						$sortable.clearMultiSelect(html);
+					})
+				}
 				$scope.part = {
 					id: $scope.$id,
 					element: $element,
@@ -505,6 +512,9 @@
 		 	    	setMulti(e)
 	 	    		onMousedown(e);
  	    		}, 300);
+ 	    		e.preventDefault();
+ 	    		e.stopPropagation()
+ 	    		return false;
 		 	  };
 
 				// assume every element is draggable unless specified
