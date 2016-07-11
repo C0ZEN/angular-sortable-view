@@ -132,7 +132,9 @@
 						}
 
 						svOriginal.after($placeholder);
-						svOriginal.addClass('ng-hide');
+						if (!that.keepInList){
+							svOriginal.addClass('ng-hide');
+						}
 
 						// cache options, helper and original element reference
 						$original = svOriginal;
@@ -350,7 +352,6 @@
 				if(!model.assign) throw new Error('model not assignable');
 				$sortable.keepInList = $parse($attrs.svKeepInList)($scope);
 				$scope.$ctrl.isDropzone = $parse($attrs.svIsDropzone)($scope) === false ? false : true;
-
 				$scope.part = {
 					id: $scope.$id,
 					element: $element,
@@ -402,6 +403,7 @@
 
 				var startTimer;
 				var clearEvent = function () {
+					svDragging.isDragging = false;
 				  clearTimeout(startTimer);
 			 	};
 			 	var event = onMousedown;
@@ -461,7 +463,6 @@
 				}
 
 				function onMousedown(e){
-					console.log("on mouse down", $element, svDragging, svDragging.isDragging);
 					if (svDragging.isDragging){
 						return;
 					}
@@ -496,10 +497,11 @@
 							'left': clientRect.left + document.body.scrollLeft + 'px',
 							'top': clientRect.top + document.body.scrollTop + 'px'
 						});
-						target.addClass('sv-visibility-hidden');
+							target.addClass('sv-visibility-hidden');
 					}
 					else{
 						setTimeout(function(){
+							console.log("adding class", target);
 							target.addClass('sv-long-pressing');
 						},300)
 						clone = target.clone();
@@ -567,7 +569,6 @@
 							body.prepend(clone);
 							moveExecuted = true;
 						}
-						console.log("Moving el", $element);
 						$controllers[1].$moveUpdate(opts, {
 							x: e.clientX,
 							y: e.clientY,
