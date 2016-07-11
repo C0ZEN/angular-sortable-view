@@ -23,11 +23,73 @@
 
 		var sortingInProgress;
 		var ROOTS_MAP = Object.create(null);
-		window.ROOTS_MAP = ROOTS_MAP; // for debug purposes
+
+
+
+		// window.ROOTS_MAP = ROOTS_MAP; // for debug purposes
 
 		return {
 			restrict: 'A',
 			controller: ['$scope', '$attrs', '$interpolate', '$parse', function($scope, $attrs, $interpolate, $parse){
+
+
+				//multi select
+
+				this.MULTI_SELECT_LIST = [];
+
+				this.clearMultiSelect = function(html){
+					console.log("clearing", this.MULTI_SELECT_LIST)
+						for (var i=0;i<this.MULTI_SELECT_LIST.length;i++){
+							this.MULTI_SELECT_LIST[i].$multiSelected = false;
+							this.MULTI_SELECT_LIST[i].element.removeClass('sv-long-pressing')
+						}
+						html.removeClass('sv-multi-selected');
+						this.MULTI_SELECT_LIST=[]
+					}
+
+				 this.addToMultiSelect = function(sortableElement, multiScope, attr, html){
+				 		for (var i=0;i<this.MULTI_SELECT_LIST.length;i++){
+							if (this.MULTI_SELECT_LIST[i] === sortableElement){
+								return false;
+							}
+						}
+						console.log("adding");
+						sortableElement.$multiSelected = true;
+						sortableElement.element.addClass('sv-long-pressing');
+						sortableElement.multiScope = multiScope;
+						sortableElement.attr = attr;
+						html.addClass('sv-multi-selected');
+						this.MULTI_SELECT_LIST.push(sortableElement);
+						return true;
+					}
+
+				this.removeFromMultiSelect = function(sortableElement,html){
+						console.log("removing")
+						sortableElement.$multiSelected = false;
+						delete sortableElement.multiScope;
+						delete sortableElement.attr;
+						sortableElement.element.removeClass('sv-long-pressing')
+						for (var i=0;i<this.MULTI_SELECT_LIST.length;i++){
+							if (this.MULTI_SELECT_LIST[i] === sortableElement){
+								this.MULTI_SELECT_LIST.splice(i,1);
+								break;
+							}
+						}
+						if (document.querySelectorAll('.sv-long-pressing').length === 0){
+							html.removeClass('sv-multi-selected');
+						}
+					}
+
+				this.getMultimodels = function(){
+					var multiModels = [];
+					var that = this;
+					for (var i=0;i<that.MULTI_SELECT_LIST.length;i++){
+						multiModels.push($parse(that.MULTI_SELECT_LIST[i].attr)(that.MULTI_SELECT_LIST[i].multiScope))
+					}
+					return multiModels
+				}
+
+
 				var mapKey = $interpolate($attrs.svRoot)($scope) || $scope.$id;
 				if(!ROOTS_MAP[mapKey]) ROOTS_MAP[mapKey] = [];
 
@@ -270,6 +332,8 @@
 							$item: originatingPart.model(originatingPart.scope)[index]
 						});
 
+						var multiModels = that.getMultimodels();
+
 						if($target){
 							$target.element.removeClass('sv-candidate');
 							var spliced = [originatingPart.model(originatingPart.scope)[index]];
@@ -281,7 +345,13 @@
 								targetIndex--;
 							if($target.after)
 								targetIndex++;
-							$target.view.model($target.view.scope).splice(targetIndex, 0, spliced[0]);
+
+							if (multiModels.length ===0)
+								multiModels =  spliced;
+
+							for (var i =0;i<multiModels.length;i++){
+								$target.view.model($target.view.scope).splice(targetIndex+i, 0, multiModels[i]);
+							}
 
 							// sv-on-sort callback
 							if($target.view !== originatingPart || index !== targetIndex){
@@ -298,7 +368,8 @@
 								sortMethod(destinationScope, {
 									$partTo: $target.view.model($target.view.scope),
 									$partFrom: originatingPart.model(originatingPart.scope),
-									$item: spliced[0],
+									// $item: spliced[0],
+									$items:multiModels,
 									$indexTo: targetIndex,
 									$indexFrom: index
 								});
@@ -333,7 +404,8 @@
 	}]);
 
 	module.directive('svPart', ['$parse', function($parse){
-		return {
+
+			return {
 			restrict: 'A',
 			require: '^svRoot',
 			controller: ['$scope', function($scope){
@@ -352,6 +424,7 @@
 				if(!model.assign) throw new Error('model not assignable');
 				$sortable.keepInList = $parse($attrs.svKeepInList)($scope);
 				$scope.$ctrl.isDropzone = $parse($attrs.svIsDropzone)($scope) === false ? false : true;
+				$scope.$ctrl.multiSelect = $parse($attrs.svMultiSelect)($scope) === true ? true : false;
 				$scope.part = {
 					id: $scope.$id,
 					element: $element,
@@ -406,10 +479,32 @@
 					svDragging.isDragging = false;
 				  clearTimeout(startTimer);
 			 	};
-			 	var event = onMousedown;
-		 	  event = function (e) {
-		 	    html.on('mouseup touchend', clearEvent);
-		 	    startTimer = setTimeout(function () { onMousedown(e); }, 100);
+
+		 	  var event = function (e) {
+		 	  	function setMulti(ev){
+		 	    	if (!moveExecuted && $controllers[0].multiSelect){
+			 	    	if (ev.ctrlKey || ev.metaKey){
+			 	    		if(sortableElement.$multiSelected){
+			 	    			$controllers[1].removeFromMultiSelect(sortableElement, html);
+			 	    		} else {
+			 	    			$controllers[1].addToMultiSelect(sortableElement, $scope, $attrs.svElement, html);
+			 	    		}
+			 	    	} else {
+			 	    		$controllers[1].clearMultiSelect(html);
+			 	    		$controllers[1].addToMultiSelect(sortableElement, $scope,$attrs.svElement, html);
+			 	    	}
+			 	    }
+		 	  	}
+		 	    html.on('mouseup touchend', function mouseup(e){
+		 	    	setMulti(e)
+		 	    	clearEvent();
+		 	    	html.off('mouseup touchend', mouseup)
+		 	    });
+
+		 	    startTimer = setTimeout(function () {
+		 	    	setMulti(e)
+	 	    		onMousedown(e);
+ 	    		}, 300);
 		 	  };
 
 				// assume every element is draggable unless specified
@@ -466,6 +561,10 @@
 					if (svDragging.isDragging){
 						return;
 					}
+
+					$controllers[1].addToMultiSelect(sortableElement, $scope, $attrs.svElement, html);
+
+
 					svDragging.isDragging = true;
 					touchFix(e);
 
@@ -500,10 +599,7 @@
 							target.addClass('sv-visibility-hidden');
 					}
 					else{
-						setTimeout(function(){
-							console.log("adding class", target);
-							target.addClass('sv-long-pressing');
-						},300)
+						target.addClass('sv-long-pressing');
 						clone = target.clone();
 						clone.addClass('sv-helper').css({
 							'left': clientRect.left + document.body.scrollLeft + 'px',
@@ -555,11 +651,18 @@
 
 						if(moveExecuted){
 							$controllers[0].$drop($scope.$index, opts);
+							moveExecuted = false;
 						}
 						$element.removeClass('sv-visibility-hidden');
-						setTimeout(function(){
-							target.removeClass('sv-long-pressing');
-						},300)
+						if (!$controllers[0].multiSelect){
+							setTimeout(function(){
+								target.removeClass('sv-long-pressing');
+							},300)
+						} else {
+							if ($controllers[1].MULTI_SELECT_LIST.length === 1){
+								$controllers[1].clearMultiSelect();
+							}
+						}
 					});
 
 					// onMousemove(e);
