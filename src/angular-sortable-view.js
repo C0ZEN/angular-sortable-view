@@ -37,6 +37,10 @@
 
 				this.MULTI_SELECT_LIST = [];
 
+				this.isMultiSelecting = function(){
+					return this.MULTI_SELECT_LIST.length > 1;
+				}
+
 				this.clearMultiSelect = function(html){
 					console.log("clearing", this.MULTI_SELECT_LIST)
 						for (var i=0;i<this.MULTI_SELECT_LIST.length;i++){
@@ -596,7 +600,7 @@
 					var target = $element;
 					var clientRect = $element[0].getBoundingClientRect();
 					var clone;
-
+					// debugger;
 					if(!helper) helper = $controllers[0].helper;
 					if(!placeholder) placeholder = $controllers[0].placeholder;
 					if(helper){
@@ -607,6 +611,13 @@
 							'top': clientRect.top + document.body.scrollTop + 'px'
 						});
 							target.addClass('sv-visibility-hidden');
+					} else if ($controllers[1].isMultiSelecting()){
+						clone = angular.element(document.querySelector("#sv-multi-helper")).clone();
+						clone.addClass('sv-helper').css({
+							'left': clientRect.left + document.body.scrollLeft + 'px',
+							'top': clientRect.top + document.body.scrollTop + 'px',
+							'width': clientRect.width + 'px'
+						});
 					}
 					else{
 						target.addClass('sv-long-pressing');
@@ -670,7 +681,7 @@
 							},300)
 						} else {
 							if ($controllers[1].MULTI_SELECT_LIST.length === 1){
-								$controllers[1].clearMultiSelect();
+								$controllers[1].clearMultiSelect(html);
 							}
 						}
 					});
