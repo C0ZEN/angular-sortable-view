@@ -636,7 +636,7 @@
 					} else if ($controllers[1].isMultiSelecting()){
 						clone = angular.element(document.querySelector("#sv-multi-helper")).clone();
 						var models = $controllers[1].getMultimodels();
-						clone[0].querySelector(".card-title-text").innerHTML = models[models.length-1].name;
+						clone[0].querySelector(".card-title-text").innerHTML = target[0].querySelector(".card-title-text").innerHTML;
 
 						clone[0].querySelector(".badge").innerHTML = $controllers[1].MULTI_SELECT_LIST.length;
 						clone.addClass('sv-helper').css({
