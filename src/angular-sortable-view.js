@@ -97,6 +97,7 @@
 				var mapKey = $interpolate($attrs.svRoot)($scope) || $scope.$id;
 				if(!ROOTS_MAP[mapKey]) ROOTS_MAP[mapKey] = [];
 
+				var html = angular.element(document.documentElement);
 				var that         = this;
 				var candidates;  // set of possible destinations
 				var $placeholder;// placeholder element
@@ -357,31 +358,44 @@
 								$target.view.model($target.view.scope).splice(targetIndex+i, 0, multiModels[i]);
 							}
 
+							var sortMethod;
+							var destinationScope = $scope;
+							var shouldSort = false;
+							if(index != targetIndex){
+								sortMethod = onSort;
+								shouldSort = true;
+							}
 							// sv-on-sort callback
-							if($target.view !== originatingPart || index !== targetIndex){
-								var sortMethod = onSort;
-								var destinationScope = $scope;
+							if($target.view !== originatingPart){
+								shouldSort = true;
+
 								//if destination has sv-on-sort call it not the parent's
-								if ($target.view.element && $target.view.element.attr("sv-on-sort")){
-									var destinationScope = $target.view.element.scope();
-									var destinationOnSort = $parse($target.view.element.attr("sv-on-sort"))
+								if ($target.view.element && $target.view.element.attr("sv-on-external-sort")){
+									destinationScope = $target.view.element.scope();
+									var destinationOnSort = $parse($target.view.element.attr("sv-on-external-sort"))
 									if (destinationOnSort){
 										sortMethod = destinationOnSort;
 									}
 								}
-								sortMethod(destinationScope, {
-									$partTo: $target.view.model($target.view.scope),
-									$partFrom: originatingPart.model(originatingPart.scope),
-									// $item: spliced[0],
-									$items:multiModels,
-									$indexTo: targetIndex,
-									$indexFrom: index
-								});
+							}
+
+							if (sortMethod){
+									sortMethod(destinationScope, {
+										$partTo: $target.view.model($target.view.scope),
+										$partFrom: originatingPart.model(originatingPart.scope),
+										// $item: spliced[0],
+										$items:multiModels,
+										$indexTo: targetIndex,
+										$indexFrom: index
+									});
+							}
+							if (shouldSort){
 								var $viewEl = $target.view.element;
 								$viewEl.addClass("sv-dropped");
 								setTimeout(function(){
 									$viewEl.removeClass("sv-dropped");
 									$viewEl = void 0;
+									that.clearMultiSelect(html);
 								},300);
 							}
 						}
@@ -576,7 +590,9 @@
 						return;
 					}
 
-					$controllers[1].addToMultiSelect(sortableElement, $scope, $attrs.svElement, html);
+					if ($controllers[0].multiSelect){
+						$controllers[1].addToMultiSelect(sortableElement, $scope, $attrs.svElement, html);
+					}
 
 
 					svDragging.isDragging = true;
@@ -613,6 +629,10 @@
 							target.addClass('sv-visibility-hidden');
 					} else if ($controllers[1].isMultiSelecting()){
 						clone = angular.element(document.querySelector("#sv-multi-helper")).clone();
+						var models = $controllers[1].getMultimodels();
+						clone[0].querySelector(".card-title-text").innerHTML = models[models.length-1].name;
+
+						clone[0].querySelector(".badge").innerHTML = $controllers[1].MULTI_SELECT_LIST.length;
 						clone.addClass('sv-helper').css({
 							'left': clientRect.left + document.body.scrollLeft + 'px',
 							'top': clientRect.top + document.body.scrollTop + 'px',
