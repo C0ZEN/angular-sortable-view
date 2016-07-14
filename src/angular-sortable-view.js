@@ -597,7 +597,7 @@
 						$controllers[1].addToMultiSelect(sortableElement, $scope, $attrs.svElement, html);
 						$controllers[1].multiSelectRaise();
 					} else {
-						target.addClass('sv-long-pressing');
+						$element.addClass('sv-long-pressing');
 					}
 
 
