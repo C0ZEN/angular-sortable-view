@@ -37,14 +37,19 @@
 
 				this.MULTI_SELECT_LIST = [];
 
+				this.multiSelectRaise = function(){
+					for (var i=0;i<this.MULTI_SELECT_LIST.length;i++){
+						this.MULTI_SELECT_LIST[i].element.addClass('sv-long-pressing')
+					}
+				}
 				this.isMultiSelecting = function(){
 					return this.MULTI_SELECT_LIST.length > 1;
 				}
 
 				this.clearMultiSelect = function(html){
-					console.log("clearing", this.MULTI_SELECT_LIST)
 						for (var i=0;i<this.MULTI_SELECT_LIST.length;i++){
 							this.MULTI_SELECT_LIST[i].$multiSelected = false;
+							this.MULTI_SELECT_LIST[i].element.removeClass('sv-element-multi-selected')
 							this.MULTI_SELECT_LIST[i].element.removeClass('sv-long-pressing')
 						}
 						html.removeClass('sv-multi-selected');
@@ -57,9 +62,8 @@
 								return false;
 							}
 						}
-						console.log("adding");
 						sortableElement.$multiSelected = true;
-						sortableElement.element.addClass('sv-long-pressing');
+						sortableElement.element.addClass('sv-element-multi-selected');
 						sortableElement.multiScope = multiScope;
 						sortableElement.attr = attr;
 						html.addClass('sv-multi-selected');
@@ -68,18 +72,17 @@
 					}
 
 				this.removeFromMultiSelect = function(sortableElement,html){
-						console.log("removing")
 						sortableElement.$multiSelected = false;
 						delete sortableElement.multiScope;
 						delete sortableElement.attr;
-						sortableElement.element.removeClass('sv-long-pressing')
+						sortableElement.element.removeClass('sv-element-multi-selected')
 						for (var i=0;i<this.MULTI_SELECT_LIST.length;i++){
 							if (this.MULTI_SELECT_LIST[i] === sortableElement){
 								this.MULTI_SELECT_LIST.splice(i,1);
 								break;
 							}
 						}
-						if (document.querySelectorAll('.sv-long-pressing').length === 0){
+						if (document.querySelectorAll('.sv-element-multi-selected').length === 0){
 							html.removeClass('sv-multi-selected');
 						}
 					}
@@ -514,7 +517,7 @@
 			 	    		} else {
 			 	    			$controllers[1].addToMultiSelect(sortableElement, $scope, $attrs.svElement, html);
 			 	    		}
-			 	    	} else {
+			 	    	} else if (!sortableElement.$multiSelected){
 			 	    		$controllers[1].clearMultiSelect(html);
 			 	    		$controllers[1].addToMultiSelect(sortableElement, $scope,$attrs.svElement, html);
 			 	    	}
@@ -590,8 +593,11 @@
 						return;
 					}
 
-					if ($controllers[0].multiSelect){
+					if ($controllers[0].multiSelect && !sortableElement.$multiSelect){
 						$controllers[1].addToMultiSelect(sortableElement, $scope, $attrs.svElement, html);
+						$controllers[1].multiSelectRaise();
+					} else {
+						target.addClass('sv-long-pressing');
 					}
 
 
@@ -640,8 +646,8 @@
 						});
 					}
 					else{
-						target.addClass('sv-long-pressing');
 						clone = target.clone();
+						clone.removeClass("sv-element-multi-selected");
 						clone.addClass('sv-helper').css({
 							'left': clientRect.left + document.body.scrollLeft + 'px',
 							'top': clientRect.top + document.body.scrollTop + 'px',
