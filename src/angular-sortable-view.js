@@ -523,6 +523,11 @@
 			 	    	}
 			 	    }
 		 	  	}
+		 	  	//ignore other buttons
+		 	  	var evt = (e==null ? event:e);
+		 	  	if (evt && (evt.which>1 || evt.button>2)){
+		 	  		return true;
+		 	  	}
 		 	    html.on('mouseup touchend', function mouseup(e){
 		 	    	setMulti(e)
 		 	    	clearEvent();
