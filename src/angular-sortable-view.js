@@ -176,6 +176,16 @@
 					});
 				}
 
+				var stop = false;
+		    var scroll = function (step, delay) {
+		    		var el = document.querySelector('.main-ui-view');
+		    		console.log("scrolling top", el.scrollTop);
+		        el.scrollTop+=step;
+		        if (!stop) {
+		            setTimeout(function () { scroll(step) }, delay);
+		        }
+		    }
+
 				this.$moveUpdate = function(opts, mouse, svElement, svOriginal, svPlaceholder, originatingPart, originatingIndex){
 					var svRect = svElement[0].getBoundingClientRect();
 					if(opts.tolerance === 'element')
@@ -185,6 +195,7 @@
 						};
 
 					sortingInProgress = true;
+					console.log("move update");
 					candidates = [];
 					if(!$placeholder){
 						if(svPlaceholder){ // custom placeholder
@@ -219,12 +230,25 @@
 						});
 						$scope.$root && $scope.$root.$$phase || $scope.$apply();
 					}
+					var reposX = mouse.x + document.body.scrollLeft - mouse.offset.x*svRect.width;
+					var reposY = mouse.y + document.body.scrollTop - mouse.offset.y*svRect.height
+
 					$helper[0].style.position ='fixed';
 					// ----- move the element
 					$helper[0].reposition({
-						x: mouse.x + document.body.scrollLeft - mouse.offset.x*svRect.width,
-						y: mouse.y + document.body.scrollTop - mouse.offset.y*svRect.height
+						x: reposX,
+						y: reposY
 					});
+
+					if (reposY <= 30){
+						stop = false;
+						scroll(-50, 200);
+					} else if (reposY >= document.body.clientHeight - 60){
+						stop = false;
+						scroll(50, 200);
+					} else {
+						stop = true;
+					}
 
 					// ----- manage candidates
 					getSortableElements(mapKey).forEach(function(se, index){
@@ -295,6 +319,7 @@
 				};
 
 				this.$drop = function(originatingPart, index, options){
+					stop=true;
 					if(!$placeholder) return;
 
 					if(options.revert){
@@ -627,7 +652,6 @@
 					var target = $element;
 					var clientRect = $element[0].getBoundingClientRect();
 					var clone;
-					// debugger;
 					if(!helper) helper = $controllers[0].helper;
 					if(!placeholder) placeholder = $controllers[0].placeholder;
 					if(helper){
